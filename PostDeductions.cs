@@ -16,7 +16,7 @@ namespace ConstructionExamples
         /// <param name="PLSupplierAccountID">Supplier Account ID</param>
         /// <param name="Net">Net Value of an Invoice or credit</param>
         /// <param name="nominalAccountEntryViews">The nominal items from the invoice/credit</param>
-        public PostDeductions(long PLSupplierAccountID, decimal Net, Sage.Accounting.NominalLedger.NominalAccountEntryViews nominalAccountEntryViews)
+        public void PostDeductionsMethod(long PLSupplierAccountID, decimal Net, Sage.Accounting.NominalLedger.NominalAccountEntryViews nominalAccountEntryViews)
         {
             SiconRetentionSupCusSetting oSetting = null;
             Sicon.Sage200.Construction.Objects.Configs.Global oGlobal = null;
