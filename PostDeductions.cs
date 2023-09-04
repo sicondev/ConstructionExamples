@@ -11,6 +11,127 @@ namespace ConstructionExamples
         ////Post deductions for Purchase transaction in Sicon Construction (v21.1+)
 
         /// <summary>
+        /// Get CIS Subcontractor details for a supplier
+        /// </summary>
+        /// <param name="PLSupplierAccountID"></param>
+         /// <returns></returns>
+        public SiconCISSupplier GetCISSupplier(long PLSupplierAccountID)
+        {
+             SiconCISSupplier oSiconCISSupplier = null;
+             try
+             {
+                 //Get CIS Supplier
+                oSiconCISSupplier = SiconCISSupplierFactory.Factory.FetchSiconCISSupplier(PLSupplierAccountID);
+                return oSiconCISSupplier;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// check if supplier is a CIS Subcontractor
+        /// </summary>
+        /// <param name="PLSupplierAccountID"></param>
+        /// <returns></returns>
+        public bool CheckIfCISSubcontractor(long PLSupplierAccountID)
+        {
+            SiconCISSupplier oSiconCISSupplier = null;
+            try
+            {
+                //Get Settings
+                oSiconCISSupplier = SiconCISSupplierFactory.Factory.FetchSiconCISSupplier(PLSupplierAccountID);
+                return CISCommon.IsCISSubcontractor(oSiconCISSupplier);
+            }
+            catch (Exception)
+            {
+                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Get Labour, material and other value split for a PL transaction
+        /// </summary>
+        /// <param name="URN"></param>
+        /// <param name="companyID"></param>
+        public void CalculateTransactionCISValues(long URN, int? companyID = null)
+        {
+            SiconCISSupplier oSiconCISSupplier = null;
+            Objects.Configs.Global oGlobal = null;
+            Sage.Accounting.PurchaseLedger.PostedPurchaseAccountEntries oPLEntries = null;
+            Sage.Accounting.PurchaseLedger.PostedPurchaseAccountEntry oPLEntry = null;
+            try
+            {
+                oGlobal = new Objects.Configs.Global();
+
+                //Find Transaction With URN
+                oPLEntries = Sage.Accounting.PurchaseLedger.PostedPurchaseAccountEntriesFactory.Factory.CreateNew();
+                oPLEntries.Query.Filters.Add(new Sage.ObjectStore.Filter("UniqueReferenceNumber", URN));
+                oPLEntries.Find();
+                if (oPLEntries.IsEmpty)
+                {
+                    throw new Exception("Purchase entry with URN '" + URN + "' could not be found");
+                }
+                else
+                {
+                    oPLEntry = oPLEntries.First;
+                }
+
+                //Get Settings
+                oSiconCISSupplier = SiconCISSupplierFactory.Factory.FetchSiconCISSupplier(oPLEntry.PLSupplierAccountID);
+
+                //Calculate Splits
+                decimal thisLabourAmount = 0;
+                decimal thisMaterialsAmount = 0;
+                decimal thisOtherAmount = 0;
+                if (oGlobal.IsManualDeductionEnabled())
+                {
+                    thisLabourAmount = (oPLEntry.DocumentNetValue / 100) * oSiconCISSupplier.DefaultLabourPercentage;
+                    thisMaterialsAmount = (oPLEntry.DocumentNetValue - thisLabourAmount);
+                    thisOtherAmount = 0;
+                }
+                else
+                {
+                    //for each nominal entry, check for valid entries to credit
+                    foreach (Sage.Accounting.NominalLedger.NominalAccountEntryView oNLView in oPLEntry.TransactionDrillDown.NominalEntries)
+                    {
+                        //Check if Debtors control or Tax
+                        if (!oGlobal.IsCreditorsOrTaxControlNominalAccount(oNLView))
+                        {
+                            //Get nominal spec 
+                            Sage.Accounting.Common.NominalSpecification oNLSpec = Sage.Accounting.Common.NominalSpecificationFactory.Factory.CreateNew(oNLView.AccountNumber, oNLView.AccountCostCentre, oNLView.AccountDepartment);
+                            //Get Nominal Code
+                            Sage.Accounting.NominalLedger.NominalCode oNLCode = Sage.Accounting.NominalLedger.NominalCodeFactory.Factory.Fetch(oNLSpec);
+
+
+                            if (CISCommon.IsLabourNominalCode(oNLCode) == true)
+                            {
+                                thisLabourAmount += oNLView.GoodsValueInBaseCurrency;
+                            }
+                            else if (CISCommon.IsMaterialsNominalCode(oNLCode))
+                            {
+                                thisMaterialsAmount += oNLView.GoodsValueInBaseCurrency;
+                            }
+                            else
+                            {
+                                thisOtherAmount += oNLView.GoodsValueInBaseCurrency;
+                            }
+                        }
+                    }
+                }
+
+                //Use Data collected in PostDeductionsMethod
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
+        
+        /// <summary>
         /// Method example for posting CIS/CITB/Retention deductions
         /// </summary>
         /// <param name="PLSupplierAccountID">Supplier Account ID</param>
