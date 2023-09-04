@@ -3,6 +3,7 @@ using Sicon.Sage200.Construction.Objects.SageObjects;
 using Sicon.Sage200.Construction.Objects.Retentions.Factories;
 using System;
 using Sicon.Sage200.Construction.Objects.CIS.Factories;
+using Sicon.Sage200.Construction.Objects.CIS.Repositories;
 
 namespace ConstructionExamples
 {
@@ -40,8 +41,9 @@ namespace ConstructionExamples
             SiconCISSupplier oSiconCISSupplier = null;
             try
             {
-                //Get Settings
+                //Get CIS Supplier
                 oSiconCISSupplier = SiconCISSupplierFactory.Factory.FetchSiconCISSupplier(PLSupplierAccountID);
+                //Return bool checking if its a subbie. (Sicon.Sage200.Construction.Objects.CIS.Repositories)
                 return CISCommon.IsCISSubcontractor(oSiconCISSupplier);
             }
             catch (Exception)
